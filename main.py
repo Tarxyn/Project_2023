@@ -7,6 +7,7 @@ cap = cv2.VideoCapture(0)
 body_cascade = cv2.CascadeClassifier('haarcascade_fullbody.xml')
 
 def PersonDetection(frame):
+    status = False
     hog = cv2.HOGDescriptor()
     hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
 
@@ -14,8 +15,18 @@ def PersonDetection(frame):
 
     for (x, y, w, h) in humans:
         cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        status = True
 
+    DoorStatus(status)
     return frame
+
+
+def DoorStatus(status):
+
+    if status == True:
+        print("True")
+    else:
+        print("False")
 
 def main():
     while True:
@@ -25,6 +36,8 @@ def main():
             output = PersonDetection(img)
 
             cv2.imshow("Camera", output)
+
+
 
             exit = cv2.waitKey(30) & 0xFF
             if exit == 27:  # esc push to exit
