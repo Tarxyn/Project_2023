@@ -1,42 +1,72 @@
-#for install libraries    pip install --force-reinstall --no-cache -U opencv-python==4.5.5.62
-#where to download cascades (for the future)   https://github.com/opencv/opencv/tree/4.x/data/haarcascades
-import cv2
+import cv2  # computervision
+import RPi.GPIO as GPIO  # для светодиодов
 
+GPIO.setmode(GPIO.BOARD)
 
-cap = cv2.VideoCapture(0)
-body_cascade = cv2.CascadeClassifier('haarcascade_fullbody.xml')
+cap = cv2.VideoCapture(0)  # нулевая-встроенная камера
+face_detect = cv2.CascadeClassifier('facecascade.xml')  # переменная, принимающая путь до каскада лица
 
-def PersonDetection(frame):
-    hog = cv2.HOGDescriptor()
-    hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
+def FaceDetection(frame):
+    status = False
+    faces = face_detect.detectMultiScale(frame, scaleFactor=1.5, minNeighbors=5, minSize=(2, 2))  # принимаемое изображение границы
 
-    (humans, _) = hog.detectMultiScale(frame, winStride=(5, 5), padding=(3, 3), scale=1.21)
+    for (x, y, w, h) in faces:
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (12, 255, 255), 1)
+        status = True
 
-    for (x, y, w, h) in humans:
-        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-
+    DoorStatus(status)
     return frame
 
-def main():
+
+def Handbreak():
+    GPIO.setup(37, GPIO.OUT)
+
+    str = input("Enter - on")
+    if str != "":
+        return 0
+    else:
+        GPIO.output(37, 1)
+        Action()
+    str = input("Enter - off")
+    if str != "":
+        return 0
+    else:
+        GPIO.output(37, 0)
+
+    GPIO.cleanup(37)
+
+def DoorStatus(status):
+    GPIO.setup(7, GPIO.OUT)
+
+    if status == True:
+        GPIO.output(7, 1)
+    else:
+        GPIO.output(7, 0)
+    GPIO.cleanup(7)
+
+def Action():
     while True:
-        ret, img = cap.read()
 
-        if ret:
-            output = PersonDetection(img)
+        ret, image = cap.read()  # считывает изображение
 
-            cv2.imshow("Camera", output)
+        output = FaceDetection(image)
 
-            exit = cv2.waitKey(30) & 0xFF
-            if exit == 27:  # esc push to exit
-                break
-        else:
-            print("UPS i dead...")
-            break
+        cv2.imshow('Camera', output)
+        if cv2.waitKey(30) & 0xFF == 27:  # если будет нажата 27 кнопка(esc), то
+            # break
+            GPIO.output(37, 0)
+            Handbreak()
 
-    cap.release()
-    cv2.destroyAllWindows()
+
+
+def main():
+    Handbreak()
+
 
 if __name__ == "__main__":
     main()
 
+GPIO.cleanup()
 
+cap.release()
+cv2.destroyAllWindows()
